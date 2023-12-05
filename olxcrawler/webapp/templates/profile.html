@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block style %}
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+{% endblock style %}
+
+{% block content %}
+<div>
+    <span class="edit-icon" onclick="toggleEditMode()">✏️</span>
+    <h2>User: {{ user.username }}</h2>
+    {% if validation %}
+    <div>
+        <span style="color: red;">{{ validation }}</span><br>
+        <br>
+    </div>
+    {% endif %}
+    <div>
+        <form method="post" action="{% url 'profile' %}">
+            {% csrf_token %}
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" value="{{ user.email }}" style="background-color: #F0F0F0" {% if not edit_mode %}readonly{% endif %} required>
+            <br>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" style="background-color: #F0F0F0" {% if not edit_mode %}readonly{% endif %}>
+            <br>
+            <button type="submit" {% if not edit_mode %}disabled{% endif %}>Save</button>
+        </form>
+    </div>
+</div>
+{% endblock content %}
+
+{% block script %}
+    function toggleEditMode() {
+        var formInputs = document.querySelectorAll('form input');
+        formInputs.forEach(function(input) {
+            input.readOnly = !input.readOnly
+            if (input.readOnly) {
+                input.style.backgroundColor = "#F0F0F0";
+            } else {
+                input.style.backgroundColor = "white";
+            }
+        });
+
+        var saveButton = document.querySelector('form button');
+        saveButton.disabled = !saveButton.disabled;
+    }
+{% endblock script %}
+

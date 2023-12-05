@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block style %}
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+{% endblock style %}
+
+{% block content %}
+    <div>
+        <h2>Select search request</h2>
+        <form method="post" action="{% url 'search_result' %}">
+            {% csrf_token %}
+            <select name="request_id">
+                {% for request in requests %}
+                    <option value="{{ request.id }}">{{request.id}}: {{ request.description }}</option>
+                {% endfor %}
+            </select>
+            <select name="aggregation">
+                {% for agg in aggregations %}
+                    <option value="{{ agg }}">{{ agg }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+    {% if plot_requested %}
+    <div>
+        {% if plot_div %}
+            {% autoescape off %}
+              {{ plot_div }}
+            {% endautoescape %}
+        {% else %}
+            <span>There's not data available for SearchRequest</span>
+        {% endif %}
+    </div>
+    {% endif %}
+{% endblock content %}
