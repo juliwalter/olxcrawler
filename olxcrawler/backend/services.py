@@ -68,6 +68,7 @@ class SearchRequestService(Singleton):
             SearchRequest.objects.get(pk=idx).delete()
         except ObjectDoesNotExist as e:
             LOGGER.warning(f"SearchRequest with id {idx} does not exist")
+            raise e
 
     @staticmethod
     def get_result_time_series(search_request, aggregation):
@@ -113,8 +114,9 @@ class UserService:
         """
         try:
             return User.objects.get(pk=user_id)
-        except ObjectDoesNotExist:
-            LOGGER.warning(f"User with id {user_id} does not exist")
+        except ObjectDoesNotExist as e:
+            LOGGER.warning(f"User with id {user_id} does not exist", e)
+            raise e
 
     @staticmethod
     def update_user(user, **kwargs):
@@ -126,10 +128,11 @@ class UserService:
         :rtype: User
         """
         if kwargs.get("email"):
+            validate_email(kwargs.get("email"))
             user.email = kwargs.get("email")
         if kwargs.get("password"):
             validate_password(kwargs.get("password"))
-        user.full_clean()
+            user.set_password(kwargs.get("password"))
         user.save()
 
 
