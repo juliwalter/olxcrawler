@@ -1,0 +1,146 @@
+{% extends "webapp/base.html" %}
+
+
+{% block style %}
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+{% endblock style %}
+
+
+{% block content %}
+    <div>
+        <h2>Create search request</h2>
+        {% if validation %}
+        <div>
+            <span style="color: red;">{{ validation }}</span><br>
+            <br>
+        </div>
+        {% endif %}
+        <form method="post" action="{% url 'search_request' %}">
+            {% csrf_token %}
+            <label for="description">Description:</label>
+            <input type="text" id="description" name="description" maxlength="80" required>
+            <br>
+            <label for="url">URL:</label>
+            <input type="url" id="url" name="url" maxlength="500" required>
+            <br>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+    <div>
+        <h2>Search Requests</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Description</th>
+                <th>URL</th>
+                <th>Delete</th>
+                <th>Crawl</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for request in requests %}
+            <tr id="row-request-{{ request.id }}">
+                <td>{{ request.id }}</td>
+                <td>{{ request.description }}</td>
+                <td><a href="{{ request.url }}">Link</a></td>
+                <td><button class="delete-button" value="{{ request.id }}">x</button></td>
+                <td>
+                    <button class="crawl-button" value="{{ request.id }}">x</button>
+                    <div id="load-crawling-{{ request.id }}"></div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock content %}
+
+{% block script %}
+    document.addEventListener('DOMContentLoaded', function () {
+        var deleteButtons = document.querySelectorAll('.delete-button');
+
+        deleteButtons.forEach(function(button) {
+            button.addEventListener('click', function() {
+                var requestId = button.value;
+                deleteSearchRequest(requestId);
+            });
+        });
+
+        function deleteSearchRequest(requestId) {
+            fetch('/backend/api/request/' + requestId + '/delete', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error while deleting SearchRequests');
+                }
+                document.getElementById('row-request-' + requestId).remove();
+                return response.json();
+            })
+            .then(data => {
+                console.log('Successfully deleted SearchRequest:', data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var crawlButtons = document.querySelectorAll('.crawl-button');
+
+        crawlButtons.forEach(function(button) {
+            button.addEventListener('click', function() {
+                var requestId = button.value;
+                crawlSearchRequest(requestId);
+            });
+        });
+
+        function crawlSearchRequest(requestId) {
+            console.log('Started request to crawl SearchRequest ' + requestId);
+            const loadSymbol = document.getElementById('load-crawling-' + requestId);
+            loadSymbol.style.display = 'block';
+            loadSymbol.textContent = 'Loading...'
+
+            const row = document.getElementById('row-request-' + requestId);
+            const buttons = row.querySelectorAll('button');
+            buttons.forEach(b => {
+                b.disabled = true;
+            });
+
+            fetch('/backend/api/request/' + requestId + '/crawl', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error while crawling SearchRequests');
+                }
+                loadSymbol.style.display = 'none';
+                buttons.forEach(b => {
+                    b.disabled = false;
+                });
+                return response.json();
+            })
+            .then(data => {
+                console.log('Successfully crawled SearchRequest:', data);
+            })
+            .catch(error => {
+                loadSymbol.style.display = 'none';
+                buttons.forEach(b => {
+                    b.disabled = false;
+                });
+                console.error('Error:', error);
+            });
+        }
+    });
+{% endblock script %}

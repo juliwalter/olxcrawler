@@ -23,7 +23,7 @@ def index(request):
     :return: Index view
     :rtype: HttpResponse
     """
-    return render(request, "index.html", context={})
+    return render(request, "webapp/index.html", context={})
 
 
 @login_required
@@ -41,7 +41,7 @@ def search_request(request):
             search_request_webservice.create_search_request_from_request(request)
         except ValidationError as e:
             validation = e.messages[0]
-    return render(request, "request.html",
+    return render(request, "webapp/request.html",
                   context={'requests': search_request_webservice.get_search_requests(), 'validation': validation})
 
 
@@ -57,7 +57,7 @@ def search_result(request):
     plot_div = None
     if request.method == "POST":
         plot_div = search_request_webservice.create_plot_from_request(request)
-    return render(request, "result.html",
+    return render(request, "webapp/result.html",
                   context={
                       'requests': search_request_webservice.get_search_requests(),
                       'aggregations': [agg.name for agg in Aggregation],
@@ -81,4 +81,4 @@ def profile(request):
             user_service.update_user(request)
         except ValidationError as e:
             validation = e.messages[0]
-    return render(request, "profile.html", context={'validation': validation})
+    return render(request, "webapp/profile.html", context={'validation': validation})
