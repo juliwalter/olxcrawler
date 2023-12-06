@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 
 # sqlite
-olxcrawler/db.sqlite3
+
 
 # misc
 .DS_Store

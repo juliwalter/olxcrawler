@@ -24,7 +24,7 @@ SECRET_KEY = "django-insecure-ox0e$_crf^($-&@%42u_@wbqtq9j6cyh#o=c5eh0p!o=mt*r(9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
 
 # Application definition
 
@@ -109,7 +109,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = "webapp/static/"
+STATIC_URL = "static/"
 STATIC_ROOT = "static/"
 
 # Default primary key field type
@@ -126,7 +126,6 @@ LOGIN_REDIRECT_URL = "/webapp"
 # https://apscheduler.readthedocs.io/en/3.x/userguide.html
 
 SCHEDULER_DEFAULT = True
-
 
 # Set the logging configuration
 LOGGING = {
