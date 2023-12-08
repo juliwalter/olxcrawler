@@ -20,18 +20,66 @@
                     <option value="{{ agg }}">{{ agg }}</option>
                 {% endfor %}
             </select>
-            <button type="submit">Submit</button>
+            <button type="submit">Graph</button>
         </form>
+        <button id="download-button">CSV</button>
     </div>
     {% if plot_requested %}
+    <hr>
     <div>
         {% if plot_div %}
             {% autoescape off %}
               {{ plot_div }}
             {% endautoescape %}
         {% else %}
-            <span>There's not data available for SearchRequest</span>
+            <span>There's no data available for SearchRequest</span>
         {% endif %}
     </div>
     {% endif %}
 {% endblock content %}
+
+{% block script %}
+    document.addEventListener('DOMContentLoaded', function () {
+        var downloadButton = document.getElementById('download-button');
+
+        downloadButton.addEventListener('click', function () {
+            var requestId = document.querySelector('[name="request_id"]').value;
+            downloadCsv(requestId);
+        });
+    });
+
+    function downloadCsv(requestId) {
+        fetch('/backend/api/request/' + requestId + '/download', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error while downloading SearchRequests');
+            }
+
+            const filename = response.headers.get('X-Filename');
+
+            return response.blob().then(blob => {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+
+                document.body.appendChild(link);
+
+                link.click();
+
+                document.body.removeChild(link);
+            });
+        })
+        .then(data => {
+            console.log('Successfully downloaded document.');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+{% endblock script %}

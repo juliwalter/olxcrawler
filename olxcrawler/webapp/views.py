@@ -35,14 +35,15 @@ def search_request(request):
     :return: Search request view
     :rtype: HttpResponse
     """
-    validation = None
+    context = {
+        "requests": search_request_webservice.get_search_requests()
+    }
     if request.method == "POST":
         try:
             search_request_webservice.create_search_request_from_request(request)
         except ValidationError as e:
-            validation = e.messages[0]
-    return render(request, "webapp/request.html",
-                  context={'requests': search_request_webservice.get_search_requests(), 'validation': validation})
+            context["validation"] = e.messages[0]
+    return render(request, "webapp/request.html", context=context)
 
 
 @login_required
@@ -54,16 +55,14 @@ def search_result(request):
     :return: Search request result view
     :rtype: HttpResponse
     """
-    plot_div = None
+    context = {
+        "requests": search_request_webservice.get_search_requests(),
+        "aggregations": [agg.name for agg in Aggregation],
+        "plot_requested": request.method == "POST",
+    }
     if request.method == "POST":
-        plot_div = search_request_webservice.create_plot_from_request(request)
-    return render(request, "webapp/result.html",
-                  context={
-                      'requests': search_request_webservice.get_search_requests(),
-                      'aggregations': [agg.name for agg in Aggregation],
-                      'plot_requested': request.method == "POST",
-                      'plot_div': plot_div
-                  })
+        context["plot_div"] = search_request_webservice.create_plot_from_request(request)
+    return render(request, "webapp/result.html", context=context)
 
 
 @login_required
@@ -75,10 +74,10 @@ def profile(request):
     :return: Profile view
     :rtype: HttpResponse
     """
-    validation = None
+    context = {}
     if request.method == "POST":
         try:
             user_service.update_user(request)
         except ValidationError as e:
-            validation = e.messages[0]
-    return render(request, "webapp/profile.html", context={'validation': validation})
+            context["validation"] = e.messages[0]
+    return render(request, "webapp/profile.html", context=context)

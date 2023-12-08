@@ -1,27 +1,17 @@
-# base image
 FROM python:3.10
-# setup environment variable
-ENV DockerHOME=/home/app/webapp
+LABEL maintainer = "julianwalter1593@gmail.com"
 
-# set work directory
-RUN mkdir -p $DockerHOME
+COPY ./requirements.txt /requirements.txt
+COPY ./olxcrawler /olxcrawler
+WORKDIR /olxcrawler
 
-# where your code lives
-WORKDIR $DockerHOME
+RUN python -m venv venv && \
+    venv/bin/pip install --upgrade pip && \
+    venv/bin/pip install -r ../requirements.txt && \
+    adduser --disabled-password --no-create-home django-user
 
-# set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PATH = "/olxcrawler/venv/bin:$PATH"
 
-# install dependencies
-RUN pip install --upgrade pip
+USER django-user
 
-# copy whole project to your docker home directory.
-COPY . $DockerHOME
-# run this command to install all dependencies
-RUN pip install -r requirements.txt
-# port where the Django app runs
-EXPOSE 8000:8000
-# start server
-CMD python manage.py migrate
-CMD cd olxcrawler && python manage.py runserver 0.0.0.0:8000
+RUN /bin/bash -c "source /olxcrawler/venv/bin/activate"

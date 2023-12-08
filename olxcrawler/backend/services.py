@@ -5,11 +5,13 @@ Contains the backend services
 """
 import logging
 
+import pandas as pd
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.validators import validate_email
 from django.db.models.query import QuerySet
+from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.response import Response
 from backend.crawler import OlxCrawler
@@ -17,6 +19,8 @@ from backend.exceptions import BackendException
 from backend.models import SearchRequest, SearchRequestResult, SearchRequestResultEntry
 from common.singleton import Singleton
 from pandas import Series, DatetimeIndex
+
+from webapp.enums import Aggregation
 
 LOGGER = logging.getLogger(__name__)
 
@@ -187,3 +191,22 @@ class ApiService(Singleton):
             return Response({
                 "message": f"Unexpected error while crawling SearchRequest with request_id={search_request.id}",
             }, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def get_csv_download(self, search_request):
+        try:
+            data = {}
+            for agg in Aggregation:
+                series = self.sr_service.get_result_time_series(search_request, agg.value)
+                if "datetime" not in data.keys():
+                    data["datetime"] = series.index
+                data[agg.name] = series
+
+            response = HttpResponse(content_type='text/csv')
+            response['X-Filename'] = f"Results_{search_request.description}.csv"
+            pd.DataFrame(data).to_csv(path_or_buf=response, sep=';', float_format='%.2f', index=False, decimal=",")
+            return response
+        except (Exception,):
+            return Response({
+                "message": f"Unexpected error while creating SearchRequestResults csv from SearchRequest with "
+                           f"request_id={search_request.id}", },
+                status.HTTP_500_INTERNAL_SERVER_ERROR)

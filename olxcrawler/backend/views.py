@@ -3,6 +3,8 @@ backend/views.py
 
 Contains the backend end point definitions
 """
+import logging
+
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
@@ -37,3 +39,9 @@ def request_crawl(request, request_id):
     """
     search_request = get_object_or_404(SearchRequest, pk=request_id)
     return api_service.crawl_search_request(search_request)
+
+
+@api_view(("GET",))
+def download_csv(request, request_id):
+    search_request = get_object_or_404(SearchRequest, pk=request_id)
+    return api_service.get_csv_download(search_request)
