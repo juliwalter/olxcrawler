@@ -18,5 +18,5 @@ def crawl_data_for_search_requests():
         try:
             sr_service.crawl_search_request(search_request=request)
         except (Exception,):
-            # Do nothing the service logs
+            # Do nothing and continue with next request --> the service logs
             pass

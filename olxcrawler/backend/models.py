@@ -11,7 +11,7 @@ from backend.validators import validate_olx_url
 class SearchRequest(models.Model):
     id = models.AutoField(primary_key=True)
     description = models.CharField(max_length=80)
-    url = models.CharField(max_length=500, null=False, validators=[validate_olx_url])
+    url = models.CharField(max_length=1000, null=False, validators=[validate_olx_url])
 
 
 class SearchRequestResult(models.Model):

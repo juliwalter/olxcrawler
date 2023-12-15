@@ -3,9 +3,6 @@ backend/services.py
 
 Contains the backend services
 """
-import logging
-
-import pandas as pd
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
@@ -14,13 +11,15 @@ from django.db.models.query import QuerySet
 from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.response import Response
+
 from backend.crawler import OlxCrawler
 from backend.exceptions import BackendException
 from backend.models import SearchRequest, SearchRequestResult, SearchRequestResultEntry
 from common.singleton import Singleton
-from pandas import Series, DatetimeIndex
+from common.enums import Aggregation
 
-from webapp.enums import Aggregation
+from pandas import Series, DatetimeIndex, DataFrame
+import logging
 
 LOGGER = logging.getLogger(__name__)
 
@@ -64,7 +63,7 @@ class SearchRequestService(Singleton):
     @staticmethod
     def delete_search_request_by_id(idx):
         """
-        Deleters a SearchRequest by the given id
+        Deletes a SearchRequest by the given id
         :param int idx: The id of the SearchRequest
         :rtype: None
         """
@@ -166,14 +165,15 @@ class ApiService(Singleton):
         except MultipleObjectsReturned:
             return Response({"message": f"No unique SearchRequest found for request_id={search_request.id}", },
                             status.HTTP_400_BAD_REQUEST)
-        except (Exception,):
+        except (Exception,) as e:
+            LOGGER.error(e)
             return Response({
                 "message": f"Unexpected error while deleting SearchRequest with request_id={search_request.id}",
             }, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def crawl_search_request(self, search_request):
         """
-        Crawls data for the given search request and returns a api response
+        Crawls data for the given search request and returns api response
         :param SearchRequest search_request: The search request
         :return: An api response
         :rtype: Response
@@ -188,24 +188,28 @@ class ApiService(Singleton):
                 "message": f"Unable to connect to {search_request.url}",
             }, status.HTTP_502_BAD_GATEWAY)
         except (Exception,) as e:
+            LOGGER.error(e)
             return Response({
                 "message": f"Unexpected error while crawling SearchRequest with request_id={search_request.id}",
             }, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get_csv_download(self, search_request):
+        """
+        Fetches the price data given to the search_request in all available aggregations
+        :param search_request: the search request
+        :return: An api response
+        """
         try:
             data = {}
             for agg in Aggregation:
-                series = self.sr_service.get_result_time_series(search_request, agg.value)
-                if "datetime" not in data.keys():
-                    data["datetime"] = series.index
-                data[agg.name] = series
-
+                data[agg.name] = self.sr_service.get_result_time_series(search_request, agg.value)
             response = HttpResponse(content_type='text/csv')
             response['X-Filename'] = f"Results_{search_request.description}.csv"
-            pd.DataFrame(data).to_csv(path_or_buf=response, sep=';', float_format='%.2f', index=False, decimal=",")
+            DataFrame(data).to_csv(path_or_buf=response, sep=';', float_format='%.2f', decimal=",",
+                                   index_label="datetime")
             return response
-        except (Exception,):
+        except (Exception,) as e:
+            LOGGER.error(e)
             return Response({
                 "message": f"Unexpected error while creating SearchRequestResults csv from SearchRequest with "
                            f"request_id={search_request.id}", },

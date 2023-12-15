@@ -1,5 +1,11 @@
+"""
+backend/crawler.py
+
+Defines the logic related to the crawler object
+"""
 from backend.exceptions import BackendException
 from backend.models import SearchRequestResultEntry, SearchRequestResult
+
 from bs4 import BeautifulSoup
 import requests
 import logging

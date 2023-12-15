@@ -11,7 +11,7 @@ from rest_framework.request import Request
 from backend.services import SearchRequestService, UserService
 from common.singleton import Singleton
 from webapp.exceptions import WebappException
-from webapp.enums import Aggregation
+from common.enums import Aggregation
 
 from plotly.offline import plot
 

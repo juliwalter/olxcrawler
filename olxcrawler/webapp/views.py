@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from rest_framework.request import Request
 
 from webapp.services import SearchRequestWebservice, UserWebservice
-from webapp.enums import Aggregation
+from common.enums import Aggregation
 
 search_request_webservice = SearchRequestWebservice()
 user_service = UserWebservice()
