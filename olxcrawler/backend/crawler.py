@@ -24,12 +24,12 @@ class OlxCrawler:
         try:
             response = requests.get(url)
             return BeautifulSoup(response.content, "html.parser")
-        except (Exception, ):
+        except (Exception,):
             raise BackendException(f"Unable to connect to connect to resource {url}")
 
     @staticmethod
-    def _extract_price(result):
-        price = result.find_all("p", {"data-testid": "ad-price"})[0].text.split(" ")[0].replace(".", "")
+    def _extract_price_for_add(ad):
+        price = ad.find("p", {"data-testid": "ad-price"}).text.split(" ")[0].replace(".", "")
         if price.isnumeric():
             return int(price)
         return None
@@ -44,6 +44,7 @@ class OlxCrawler:
         url = self.search_request.url
         urls = [url]
 
+        # split the url before the search parameters for inserting page numbers
         url_split = url.split("?")
         base_url = url_split[0]
         search_parameters = ""
@@ -52,31 +53,57 @@ class OlxCrawler:
 
         for i in range(2, self.page_count + 1):
             urls.append(base_url + f"?page={i}" + search_parameters)
+        print(urls)
         return urls
 
-    def _crawl_page(self, url, search_request_result):
+    def _crawl_page(self, url, car_ads):
         soup = self._get_soup(url)
+        ads = soup.find_all("div", {"data-cy": "l-card"})
 
-        results = soup.find_all("div", {"data-cy": "l-card"})
-        prices = [self._extract_price(result) for result in results]
-
-        if len(prices) > 0:
-            for price in filter(lambda x: x is not None, prices):
-                search_request_result_entry = SearchRequestResultEntry()
-                search_request_result_entry.price = price
-                search_request_result_entry.search_request_result = search_request_result
-                search_request_result_entry.full_clean()
-                search_request_result_entry.save()
+        for ad in ads:
+            title = ad.find("h6").text
+            price = self._extract_price_for_add(ad)
+            year_km = ad.find("div", {"class": "css-efx9z5"}).text
+            car_ad = CarAd(title, price, year_km)
+            if car_ad not in car_ads:
+                car_ads.append(car_ad)
 
     def crawl(self):
-        search_request_result = SearchRequestResult()
-        search_request_result.search_request = self.search_request
-        search_request_result.save()
-
         try:
+            car_ads = []
+            print(self.urls)
             for url in self.urls:
-                self._crawl_page(url, search_request_result)
-        except (Exception, ) as e:
+                # crawl twice to make it more likely to get all ads
+                self._crawl_page(url, car_ads)
+                self._crawl_page(url, car_ads)
+        except (Exception,) as e:
             LOGGER.warning(f"Error while crawling SearchRequest with id {self.search_request.id}")
             raise e
+
+        if len(car_ads) > 0:
+            search_request_result = SearchRequestResult()
+            search_request_result.search_request = self.search_request
+            search_request_result.save()
+
+            for car_ad in car_ads:
+                if car_ad.price is not None:
+                    entry = SearchRequestResultEntry(price=car_ad.price, search_request_result=search_request_result)
+                    entry.save()
+
         LOGGER.info(f"Successfully crawled SearchRequest with id {self.search_request.id}")
+
+
+class CarAd:
+    """
+    Helper class to be able to distinguish between crawled ads.
+    """
+
+    def __init__(self, title, price, year_km):
+        self.title = title
+        self.price = price
+        self.year_km = year_km
+
+    def __eq__(self, other):
+        if isinstance(other, CarAd):
+            return self.title == other.title and self.price == other.price and self.year_km == other.year_km
+        return False
