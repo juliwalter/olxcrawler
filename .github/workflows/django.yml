@@ -26,5 +26,6 @@ jobs:
         pip install -r requirements.txt
     - name: Run Tests
       run: |
-        python olxcrawler/manage.py test --settings=olxcrawler.settings.test
+        cd olxcrawler
+        python manage.py test --settings=olxcrawler.settings.test
 
